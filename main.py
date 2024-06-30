@@ -141,12 +141,18 @@ if __name__ == '__main__':
     # use yt_dlp to download the songs
     with yt_dlp.YoutubeDL({
         'outtmpl': "%(title)s.%(ext)s",
-        'format': 'm4a',
+        'format': 'bestaudio/best',
+        'postprocessors': [{
+            'key': 'FFmpegExtractAudio',
+            'preferredcodec': 'mp3',
+            'preferredquality': '192',
+        }, {
+            'key': 'FFmpegMetadata',
+        }],
         }) as ydl:
         # download the songs
         for each_song_string, each_song in songs_to_download.items():
             print("Downloading song: ", each_song_string)
-            #songs = spotdl.search([each_song_string])
-            #spotdl.download(f"https://music.youtube.com/watch?v={each_song['videoId']}")
-            ydl.download([f"https://music.youtube.com/watch?v={each_song['videoId']}"])
+            ydl.download(f"https://music.youtube.com/watch?v={each_song['videoId']}")
+
 
