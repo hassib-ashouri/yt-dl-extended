@@ -3,6 +3,8 @@ import logging
 from spotdl import Spotdl
 from ytmusicapi import YTMusic
 import yt_dlp
+from unicodedata import normalize
+import re
 
 # use spotdl to get songs names from a spotify playlist
 def get_songs_from_playlist(playlist_url):
@@ -10,20 +12,38 @@ def get_songs_from_playlist(playlist_url):
     songs = spotdl.search([playlist_url])
     return songs
 
+def is_left_contained_in_right(contained, container):
+    algo = "NFC"
+    container = normalize("NFKD", container.lower())
+    container = re.sub(r"[\u0027\u02B9\u02BB\u02BC\u02BE\u02C8\u02EE\u0301\u0313\u0315\u055A\u05F3\u07F4\u07F5\u1FBF\u2018\u2019\u2032\uA78C\uFF07]", "'",container)
+    contained = normalize("NFKD", contained.lower())
+    contained = re.sub(r"[\u0027\u02B9\u02BB\u02BC\u02BE\u02C8\u02EE\u0301\u0313\u0315\u055A\u05F3\u07F4\u07F5\u1FBF\u2018\u2019\u2032\uA78C\uFF07]", "'",contained)
+    isContained = contained in container
+    return isContained
+
 def get_valid_songs(search_results, artist, title):
     validSongs = []
+    # normalize the strings using nfkd
+    
     for i in range(len(search_results)):
         each_song = search_results[i]
-        each_song_artists = each_song['artists']
-        each_song_title = each_song['title']
+        # normalize
 
         isValidArtist = False
         isValidTitle = False
 
-        if(len(each_song['artists']) > 0 and artist in each_song_artists[0]['name']):
+        # assumed matched if no artist is provided
+        if(len(each_song['artists']) == 0): 
             isValidArtist = True
-        if(title in each_song_title):
+        else:
+            for each_artist in each_song['artists']:
+                if(is_left_contained_in_right(artist, each_artist['name'])):
+                    isValidArtist = True
+                    break
+
+        if(is_left_contained_in_right(title, each_song['title'])):
             isValidTitle = True
+
         logging.debug("isValidArtist:", isValidArtist, "isValiedTitle:", isValidTitle)
         if(isValidArtist and isValidTitle):
             validSongs.append(each_song)
@@ -127,7 +147,7 @@ if __name__ == '__main__':
 
         print("Adding song to download:")
         print(get_yt_song_preview(song_to_download))
-        songs_to_download[f"{song_to_download['artists'][0]['name']} - {song_to_download['title']}"] = song_to_download
+        songs_to_download[f"{song_to_download['artists'][0]['name'] if len(song_to_download['artists']) > 0 else ""} - {song_to_download['title']}"] = song_to_download
 
     print("=====================================================================")
     print("Summary:")
