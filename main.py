@@ -64,10 +64,14 @@ def get_extended_song(valid_songs):
     return extended_song_i
 
 
-def print_yt_songs_dic(search_results):
+def print_yt_songs_dic(search_results, with_keys = False):
     i = 1
     for k,v in search_results.items():
-        print(i, " - ",get_yt_song_preview(v))
+        to_print = [i, "-"]
+        if(with_keys):
+            to_print += [k, "-"]
+        to_print += [get_yt_song_preview(v)]
+        print(*to_print)
         i += 1
 
 def print_yt_songs(search_results):
@@ -107,6 +111,7 @@ if __name__ == '__main__':
 
     # Some key metrics to keep track
     extended_songs_found = 0
+    songs_not_found = {}
 
     for i in range(len(songs_to_lookup)):
         print("=====================================================================")
@@ -122,32 +127,39 @@ if __name__ == '__main__':
         #default to the first song of the search results
         song_to_download = results[0]
 
-        # guard clause
+        # check the results lengths
         if(len(valid_songs) == 0):
-            print(f"No valid songs found in the search for {songs_to_lookup[i]}. Printting search results")
-            print_yt_songs(results)
-            continue
-
-        print("Valid songs:")
-        print_yt_songs(valid_songs)
-
-        # find the song to download
-        # find extended version
-        extended_song_i = get_extended_song(valid_songs)
-
-        # if extended version not found, get the first song which probably is the original version
-        if(extended_song_i > -1):
-            song_to_download = valid_songs[extended_song_i]
-            extended_songs_found += 1
-            print("Found extended version")
+            #original results are non existent
+            if(len(results) == 0):
+                print(f"No valid songs found in the search results. Printting search results")
+                print_yt_songs(results)
+                continue
+            else:
+                # default to the first song
+                print("No valid songs found in the search results.")
+                print("Choosing the first song to download")
+                songs_not_found[songs_to_lookup[i]] = song_to_download
         else:
-            song_to_download = valid_songs[0]
-            print("No extended version found. Downloading the first song")
+            # look for the extended songs
+            print("Valid songs:")
+            print_yt_songs(valid_songs)
+
+            # find extended version
+            extended_song_i = get_extended_song(valid_songs)
+
+            # if extended version not found, get the first song which probably is the original version
+            if(extended_song_i > -1):
+                song_to_download = valid_songs[extended_song_i]
+                extended_songs_found += 1
+                print("Found extended version")
+            else:
+                song_to_download = valid_songs[0]
+                print("No extended version found. Downloading the first song")
 
 
         print("Adding song to download:")
         print(get_yt_song_preview(song_to_download))
-        songs_to_download[f"{song_to_download['artists'][0]['name'] if len(song_to_download['artists']) > 0 else ""} - {song_to_download['title']}"] = song_to_download
+        songs_to_download[songs_to_lookup[i]] = song_to_download
 
     print("=====================================================================")
     print("Summary:")
@@ -156,6 +168,8 @@ if __name__ == '__main__':
     print("Total songs to download:", len(songs_to_download))
     print("songs to download:")
     print_yt_songs_dic(songs_to_download)
+    print("songs not found:")
+    print_yt_songs_dic(songs_not_found, with_keys=True)
 
 
     # use yt_dlp to download the songs
